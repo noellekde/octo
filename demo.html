@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Octo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: monospace;
+    }
+
+    body {
+      background: #000000;
+      color: #0F0F0F;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      background: #007D22;
+      color: #00FF44;
+      padding: 10px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .main {
+      display: flex;
+      flex: 1;
+    }
+
+    .sidebar {
+      width: 200px;
+      background: #000000;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .title {
+      background: #007D22;
+      color: #00FF44;
+      padding: 4px;
+      font-size: 12px;
+    }
+
+    button {
+      background: #007D22;
+      color: #00FF44;
+      border: none;
+      padding: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      text-align: left;
+      font-weight: bold;
+    }
+
+    button.active {
+      background: #1100FF;
+      color: #E8E1E1;
+    }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+
+    .swatch {
+      height: 30px;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+
+    .swatch.selected {
+      border-color: #1100FF;
+    }
+
+    .workspace {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000000;
+      position: relative;
+    }
+
+    canvas {
+      background: #00FFBB;
+      display: block;
+    }
+
+    .modal {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 10;
+    }
+
+    .modal-content {
+      background: #000000;
+      border: 2px solid #007D22;
+      width: 80%;
+      max-width: 600px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .modal-header {
+      background: #007D22;
+      color: #00FF44;
+      padding: 6px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: #0F0F0F;
+      color: #00FF44;
+      border: 1px solid #007D22;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      resize: vertical;
+    }
+
+    textarea:focus {
+      outline: 1px solid #1100FF;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .modal-buttons button {
+      flex: 1;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>Octo</header>
+
+  <div class="main">
+    <div class="sidebar">
+      <div class="title">SPRITES</div>
+      <button id="btn-player" class="active" onclick="setTool('player')">PLAYER</button>
+      <button id="btn-enemy" onclick="setTool('enemy')">ENEMY</button>
+      <button id="btn-wall" onclick="setTool('wall')">WALL</button>
+      <button id="btn-erase" onclick="setTool('erase')">ERASE</button>
+
+      <div class="title">COLOR PALETTE</div>
+      <div class="palette">
+        <div class="swatch selected" style="background:#00FF44;" onclick="selectColor('#00FF44', this)"></div>
+        <div class="swatch" style="background:#1100FF;" onclick="selectColor('#1100FF', this)"></div>
+        <div class="swatch" style="background:#007D22;" onclick="selectColor('#007D22', this)"></div>
+        <div class="swatch" style="background:#0F0F0F;" onclick="selectColor('#0F0F0F', this)"></div>
+        <div class="swatch" style="background:#E8E1E1;" onclick="selectColor('#E8E1E1', this)"></div>
+        <div class="swatch" style="background:#FFFF00;" onclick="selectColor('#FFFF00', this)"></div>
+      </div>
+
+      <div class="title">CUSTOM CODE</div>
+      <button id="btn-code" onclick="openCodeModal()">EDIT HTML CODE</button>
+
+      <div class="title">ENGINE</div>
+      <button id="btn-play" style="background:#1100FF; color:#E8E1E1;" onclick="togglePlay()">PLAY</button>
+      <button onclick="clearGrid()">CLEAR</button>
+    </div>
+
+    <div class="workspace">
+      <canvas id="canvas" width="400" height="400"></canvas>
+
+      <div class="modal" id="code-modal">
+        <div class="modal-content">
+          <div class="modal-header" id="modal-title">EDIT SPRITE CODE</div>
+          <textarea id="code-input" spellcheck="false"></textarea>
+          <div class="modal-buttons">
+            <button onclick="saveCode()" style="background:#1100FF; color:#E8E1E1;">SAVE & APPLY</button>
+            <button onclick="closeCodeModal()">CANCEL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const GRID = 10;
+    const SIZE = canvas.width / GRID;
+
+    let playing = false;
+    let tool = 'player';
+    let selectedColor = '#00FF44';
+    let grid = Array(GRID).fill(null).map(() => Array(GRID).fill(null));
+
+    let player = null;
+
+    const spriteCode = {
+      player: '<div style="width: 100%; height: 100%; background: #00FF44;"></div>',
+      enemy: '<div style="width: 100%; height: 100%; background: #1100FF;"></div>',
+      wall: '<div style="width: 100%; height: 100%; background: #007D22;"></div>'
+    };
+
+    function getColorFromHTML(htmlString) {
+      const hexMatch = htmlString.match(/background:\s*(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})/i);
+      return hexMatch && hexMatch[1] ? hexMatch[1].toUpperCase() : null;
+    }
+
+    function setTool(t) {
+      tool = t;
+      document.querySelectorAll('.sidebar button').forEach(b => {
+        if (b.id.startsWith('btn-')) b.classList.remove('active');
+      });
+      if (document.getElementById(`btn-${t}`)) {
+        document.getElementById(`btn-${t}`).classList.add('active');
+      }
+    }
+
+    function selectColor(color, el) {
+      selectedColor = color;
+      document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
+      el.classList.add('selected');
+
+      if (tool !== 'erase' && spriteCode[tool]) {
+        spriteCode[tool] = spriteCode[tool].replace(/background:\s*[^;"]+/i, `background: ${selectedColor}`);
+      }
+    }
+
+    function openCodeModal() {
+      if (tool === 'erase') {
+        alert('Select a sprite first!');
+        return;
+      }
+      document.getElementById('modal-title').textContent = `EDIT HTML CODE (${tool.toUpperCase()})`;
+      document.getElementById('code-input').value = spriteCode[tool];
+      document.getElementById('code-modal').style.display = 'flex';
+    }
+
+    function closeCodeModal() {
+      document.getElementById('code-modal').style.display = 'none';
+    }
+
+    function saveCode() {
+      const code = document.getElementById('code-input').value;
+      const originalColor = getColorFromHTML(spriteCode[tool]);
+      const newColor = getColorFromHTML(code);
+
+      if (originalColor && newColor && originalColor !== newColor) {
+        alert("I dont think so!");
+        return;
+      }
+
+      spriteCode[tool] = code;
+      closeCodeModal();
+      draw();
+    }
+
+    canvas.addEventListener('click', (e) => {
+      if (playing) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / SIZE);
+      const y = Math.floor((e.clientY - rect.top) / SIZE);
+
+      if (tool === 'player') {
+        for (let r = 0; r < GRID; r++) {
+          for (let c = 0; c < GRID; c++) {
+            if (grid[r][c]?.type === 'player') grid[r][c] = null;
+          }
+        }
+        grid[y][x] = { type: 'player', color: selectedColor };
+      } else if (tool === 'enemy') {
+        grid[y][x] = { type: 'enemy', color: selectedColor };
+      } else if (tool === 'wall') {
+        grid[y][x] = { type: 'wall', color: selectedColor };
+      } else if (tool === 'erase') {
+        grid[y][x] = null;
+      }
+
+      draw();
+    });
+
+    function clearGrid() {
+      grid = Array(GRID).fill(null).map(() => Array(GRID).fill(null));
+      draw();
+    }
+
+    function draw() {
+      ctx.fillStyle = '#00FFBB';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let r = 0; r < GRID; r++) {
+        for (let c = 0; c < GRID; c++) {
+          const item = grid[r][c];
+          if (item) {
+            ctx.fillStyle = item.color;
+            ctx.fillRect(c * SIZE, r * SIZE, SIZE, SIZE);
+          }
+        }
+      }
+
+      ctx.strokeStyle = '#007D22';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= GRID; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * SIZE, 0);
+        ctx.lineTo(i * SIZE, canvas.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, i * SIZE);
+        ctx.lineTo(canvas.width, i * SIZE);
+        ctx.stroke();
+      }
+    }
+
+    function togglePlay() {
+      playing = !playing;
+      const btn = document.getElementById('btn-play');
+
+      if (playing) {
+        btn.textContent = 'STOP';
+        btn.style.background = '#007D22';
+
+        for (let r = 0; r < GRID; r++) {
+          for (let c = 0; c < GRID; c++) {
+            if (grid[r][c]?.type === 'player') player = { x: c, y: r, color: grid[r][c].color };
+          }
+        }
+      } else {
+        btn.textContent = 'PLAY';
+        btn.style.background = '#1100FF';
+      }
+      draw();
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (!playing || !player) return;
+
+      let dx = 0, dy = 0;
+      if (e.key === 'ArrowUp') dy = -1;
+      if (e.key === 'ArrowDown') dy = 1;
+      if (e.key === 'ArrowLeft') dx = -1;
+      if (e.key === 'ArrowRight') dx = 1;
+
+      if (dx !== 0 || dy !== 0) {
+        const nx = player.x + dx;
+        const ny = player.y + dy;
+
+        if (nx >= 0 && nx < GRID && ny >= 0 && ny < GRID) {
+          const target = grid[ny][nx];
+
+          if (target?.type === 'wall') return;
+
+          if (target?.type === 'enemy') {
+            alert('GAME OVER');
+            togglePlay();
+            return;
+          }
+
+          grid[player.y][player.x] = null;
+          player = { x: nx, y: ny, color: player.color };
+          grid[ny][nx] = { type: 'player', color: player.color };
+          draw();
+        }
+      }
+    });
+
+    draw();
+  </script>
+</body>
+</html>
