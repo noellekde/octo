@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>play a game before Octo releases?</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #1a1a1a;
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+    }
+
+    #game-container {
+      position: relative;
+      width: 800px;
+      height: 300px;
+    }
+
+    canvas {
+      background: #2d2d2d;
+      border-bottom: 4px solid #4ea8de;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+      border-radius: 8px 8px 0 0;
+    }
+
+    #ui {
+      position: absolute;
+      top: 15px;
+      left: 20px;
+      font-size: 20px;
+      font-weight: bold;
+      pointer-events: none;
+    }
+
+    #game-title {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #888;
+      pointer-events: none;
+    }
+
+    #game-over-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    h1 {
+      margin: 0 0 10px 0;
+      font-size: 40px;
+      color: #ff4d4d;
+    }
+
+    p {
+      margin: 0 0 20px 0;
+      font-size: 18px;
+      color: #ccc;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 18px;
+      font-weight: bold;
+      background-color: #4ea8de;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    button:hover {
+      background-color: #5bc0be;
+      transform: scale(1.05);
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    .instructions {
+      margin-top: 15px;
+      color: #888;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <canvas id="gameCanvas" width="800" height="300"></canvas>
+    <div id="ui">Score: <span id="score">0</span></div>
+    <div id="game-title">play a game before Octo releases?</div>
+    
+    <div id="game-over-screen">
+      <h1>GAME OVER</h1>
+      <p>Final Score: <span id="final-score">0</span></p>
+      <button id="restart-btn">Play Again</button>
+    </div>
+  </div>
+  
+  <div class="instructions">Press <strong>Spacebar</strong>, <strong>Up Arrow</strong>, or <strong>Click/Tap</strong> to Jump</div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const finalScoreEl = document.getElementById('final-score');
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const restartBtn = document.getElementById('restart-btn');
+
+    let gameSpeed = 6;
+    let score = 0;
+    let isGameOver = false;
+    let animationFrameId;
+    let spawnTimer = 0;
+    let nextSpawnTime = 0;
+
+    const groundY = canvas.height - 20;
+
+    const player = {
+      x: 80,
+      y: groundY - 30,
+      width: 30,
+      height: 30,
+      color: '#4ea8de',
+      velocityY: 0,
+      gravity: 0.6,
+      jumpForce: -12,
+      isGrounded: false,
+      
+      jump() {
+        if (this.isGrounded) {
+          this.velocityY = this.jumpForce;
+          this.isGrounded = false;
+        }
+      },
+
+      update() {
+        this.velocityY += this.gravity;
+        this.y += this.velocityY;
+
+        if (this.y + this.height >= groundY) {
+          this.y = groundY - this.height;
+          this.velocityY = 0;
+          this.isGrounded = true;
+        }
+      },
+
+      draw() {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+      }
+    };
+
+    let spikes = [];
+
+    class Spike {
+      constructor() {
+        this.width = 25;
+        this.height = 35;
+        this.x = canvas.width;
+        this.y = groundY;
+      }
+
+      update() {
+        this.x -= gameSpeed;
+      }
+
+      draw() {
+        ctx.fillStyle = '#ff4d4d';
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x + this.width / 2, this.y - this.height);
+        ctx.lineTo(this.x + this.width, this.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    function spawnSpikes() {
+      spawnTimer++;
+      if (spawnTimer >= nextSpawnTime) {
+        spikes.push(new Spike());
+        spawnTimer = 0;
+        nextSpawnTime = Math.floor(Math.random() * 50) + Math.max(40, 100 - gameSpeed * 3);
+      }
+    }
+
+    function checkCollision(player, spike) {
+      const spikeLeft = spike.x;
+      const spikeRight = spike.x + spike.width;
+      const spikeTop = spike.y - spike.height;
+      const spikeBottom = spike.y;
+
+      return (
+        player.x < spikeRight &&
+        player.x + player.width > spikeLeft &&
+        player.y < spikeBottom &&
+        player.y + player.height > spikeTop
+      );
+    }
+
+    function init() {
+      score = 0;
+      gameSpeed = 6;
+      isGameOver = false;
+      spikes = [];
+      spawnTimer = 0;
+      nextSpawnTime = 60;
+      player.y = groundY - player.height;
+      player.velocityY = 0;
+      scoreEl.textContent = '0';
+      gameOverScreen.classList.add('hidden');
+      
+      cancelAnimationFrame(animationFrameId);
+      gameLoop();
+    }
+
+    function triggerGameOver() {
+      isGameOver = true;
+      finalScoreEl.textContent = Math.floor(score);
+      gameOverScreen.classList.remove('hidden');
+    }
+
+    function gameLoop() {
+      if (isGameOver) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#333';
+      ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+      player.update();
+      player.draw();
+
+      spawnSpikes();
+      for (let i = spikes.length - 1; i >= 0; i--) {
+        spikes[i].update();
+        spikes[i].draw();
+
+        if (checkCollision(player, spikes[i])) {
+          triggerGameOver();
+          return;
+        }
+
+        if (spikes[i].x + spikes[i].width < 0) {
+          spikes.splice(i, 1);
+        }
+      }
+
+      score += 0.1;
+      gameSpeed += 0.001;
+      scoreEl.textContent = Math.floor(score);
+
+      animationFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        if (isGameOver) {
+          init();
+        } else {
+          player.jump();
+        }
+      }
+    });
+
+    canvas.addEventListener('pointerdown', () => {
+      if (isGameOver) {
+        init();
+      } else {
+        player.jump();
+      }
+    });
+
+    restartBtn.addEventListener('click', init);
+
+    init();
+  </script>
+</body>
+</html>
