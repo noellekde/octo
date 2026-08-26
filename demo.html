@@ -2,99 +2,170 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Octo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
+  <title>Octo Engine</title>
   <style>
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: monospace;
+      font-family: Arial, sans-serif;
+      touch-action: manipulation;
     }
 
     body {
-      background: #000000;
-      color: #0F0F0F;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-
-    header {
-      background: #007D22;
-      color: #00FF44;
-      padding: 10px;
-      font-weight: bold;
-      font-size: 18px;
-    }
-
-    .main {
-      display: flex;
-      flex: 1;
-    }
-
-    .sidebar {
-      width: 200px;
-      background: #000000;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .title {
-      background: #007D22;
-      color: #00FF44;
-      padding: 4px;
-      font-size: 12px;
-    }
-
-    button {
-      background: #007D22;
-      color: #00FF44;
-      border: none;
-      padding: 8px;
-      font-size: 12px;
-      cursor: pointer;
-      text-align: left;
-      font-weight: bold;
-    }
-
-    button.active {
       background: #1100FF;
-      color: #E8E1E1;
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* Left Sidebar */
+    .sidebar-left {
+      width: 220px;
+      background: #1100FF;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      z-index: 2;
+    }
+
+    /* Right Sidebar */
+    .sidebar-right {
+      width: 220px;
+      background: #1100FF;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      z-index: 2;
+    }
+
+    .selected-sprite-title {
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+
+    /* Green Flat Buttons */
+    .btn {
+      background: #00FF44;
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: none;
+      user-select: none;
+    }
+
+    .btn.active {
+      background: #009922;
+    }
+
+    .btn:active {
+      opacity: 0.9;
+    }
+
+    /* Center Workspace */
+    .workspace {
+      flex: 1;
+      background: #00FFBB;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 20px;
+      position: relative;
+    }
+
+    /* White Game Area */
+    canvas {
+      background: #FFFFFF;
+      border-radius: 8px;
+      display: block;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* On-Screen D-Pad Controls */
+    .dpad-container {
+      display: none;
+      position: absolute;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150px;
+      height: 150px;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 5px;
+      z-index: 5;
+    }
+
+    .dpad-btn {
+      background: #1100FF;
+      border: 2px solid #FFFFFF;
+      color: #FFFFFF;
+      border-radius: 8px;
+      font-size: 20px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .dpad-btn:active {
+      background: #00FF44;
+      color: #1100FF;
+    }
+
+    /* Sub-panels for tools */
+    .panel {
+      display: none;
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: #1100FF;
+      padding: 15px;
+      border-radius: 12px;
+      color: white;
+      z-index: 6;
     }
 
     .palette {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 5px;
+      gap: 8px;
     }
 
     .swatch {
-      height: 30px;
+      width: 35px;
+      height: 35px;
+      border-radius: 6px;
       cursor: pointer;
-      border: 2px solid transparent;
+      border: 1px solid #ffffff;
+      box-sizing: border-box;
+      transition: transform 0.1s ease;
     }
 
     .swatch.selected {
-      border-color: #1100FF;
+      border: 3px solid #ffffff;
+      outline: 2px solid #000000;
+      transform: scale(1.05);
     }
 
-    .workspace {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #000000;
-      position: relative;
-    }
-
-    canvas {
-      background: #00FFBB;
-      display: block;
-    }
-
+    /* Modals */
     .modal {
       display: none;
       position: absolute;
@@ -102,73 +173,139 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.8);
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 20px;
       z-index: 10;
     }
 
     .modal-content {
-      background: #000000;
-      border: 2px solid #007D22;
-      width: 80%;
-      max-width: 600px;
-      padding: 15px;
+      background: #1100FF;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 520px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-    }
-
-    .modal-header {
-      background: #007D22;
-      color: #00FF44;
-      padding: 6px;
-      font-size: 14px;
-      font-weight: bold;
+      gap: 12px;
+      color: white;
     }
 
     textarea {
       width: 100%;
-      height: 200px;
+      height: 180px;
       background: #0F0F0F;
       color: #00FF44;
-      border: 1px solid #007D22;
+      border: none;
+      border-radius: 8px;
       padding: 10px;
       font-family: monospace;
-      font-size: 12px;
-      resize: vertical;
+      font-size: 13px;
+      resize: none;
     }
 
-    textarea:focus {
-      outline: 1px solid #1100FF;
-    }
-
-    .modal-buttons {
+    /* Drawing Editor Modal UI */
+    .draw-container {
       display: flex;
-      gap: 10px;
+      gap: 15px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
     }
 
-    .modal-buttons button {
-      flex: 1;
-      text-align: center;
+    .draw-tools {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .draw-tool-btn {
+      padding: 8px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+
+    #drawCanvas {
+      background: #ffffff;
+      border-radius: 6px;
+      cursor: crosshair;
+    }
+
+    /* Mobile Responsive Scale Adjustments */
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar-left, .sidebar-right {
+        width: 100%;
+        height: auto;
+        padding: 8px 12px;
+        flex-direction: row;
+        justify-content: space-around;
+        gap: 6px;
+      }
+
+      .selected-sprite-title {
+        display: none;
+      }
+
+      .btn {
+        padding: 8px 10px;
+        font-size: 11px;
+        border-radius: 8px;
+        flex: 1;
+      }
+
+      .workspace {
+        padding-top: 10px;
+      }
+
+      .panel {
+        bottom: 10px;
+        left: 10px;
+        padding: 10px;
+      }
+
+      .swatch {
+        width: 28px;
+        height: 28px;
+      }
     }
   </style>
 </head>
 <body>
 
-  <header>Octo</header>
+  <!-- Left Controls -->
+  <div class="sidebar-left">
+    <button class="btn" id="btn-play" onclick="togglePlay()">Play</button>
+    <button class="btn" onclick="togglePanel('palette-panel')">Palette</button>
+    <button class="btn mode-btn" id="btn-select" onclick="setMode('select')">Select</button>
+    <button class="btn" onclick="togglePanel('sprite-panel')">New Sprite</button>
+    <button class="btn mode-btn" id="btn-move" onclick="setMode('move')">Move/Scale</button>
+  </div>
 
-  <div class="main">
-    <div class="sidebar">
-      <div class="title">SPRITES</div>
-      <button id="btn-player" class="active" onclick="setTool('player')">PLAYER</button>
-      <button id="btn-enemy" onclick="setTool('enemy')">ENEMY</button>
-      <button id="btn-wall" onclick="setTool('wall')">WALL</button>
-      <button id="btn-erase" onclick="setTool('erase')">ERASE</button>
+  <!-- Center Stage -->
+  <div class="workspace">
+    <canvas id="gameCanvas" width="544" height="320"></canvas>
 
-      <div class="title">COLOR PALETTE</div>
+    <!-- Mobile D-Pad Control -->
+    <div class="dpad-container" id="dpad">
+      <div></div>
+      <button class="dpad-btn" onclick="movePlayer(0, -1)">▲</button>
+      <div></div>
+      <button class="dpad-btn" onclick="movePlayer(-1, 0)">◄</button>
+      <div></div>
+      <button class="dpad-btn" onclick="movePlayer(1, 0)">►</button>
+      <div></div>
+      <button class="dpad-btn" onclick="movePlayer(0, 1)">▼</button>
+      <div></div>
+    </div>
+
+    <!-- Color Palette Sub-Panel -->
+    <div class="panel" id="palette-panel">
+      <div style="font-size:12px; font-weight:bold; margin-bottom:8px;">COLOR PALETTE</div>
       <div class="palette">
         <div class="swatch selected" style="background:#00FF44;" onclick="selectColor('#00FF44', this)"></div>
         <div class="swatch" style="background:#1100FF;" onclick="selectColor('#1100FF', this)"></div>
@@ -177,64 +314,233 @@
         <div class="swatch" style="background:#E8E1E1;" onclick="selectColor('#E8E1E1', this)"></div>
         <div class="swatch" style="background:#FFFF00;" onclick="selectColor('#FFFF00', this)"></div>
       </div>
-
-      <div class="title">CUSTOM CODE</div>
-      <button id="btn-code" onclick="openCodeModal()">EDIT HTML CODE</button>
-
-      <div class="title">ENGINE</div>
-      <button id="btn-play" style="background:#1100FF; color:#E8E1E1;" onclick="togglePlay()">PLAY</button>
-      <button onclick="clearGrid()">CLEAR</button>
     </div>
 
-    <div class="workspace">
-      <canvas id="canvas" width="400" height="400"></canvas>
+    <!-- New Sprite Selector Sub-Panel -->
+    <div class="panel" id="sprite-panel">
+      <div style="font-size:12px; font-weight:bold; margin-bottom:8px;">CHOOSE SPRITE TOOL</div>
+      <div style="display:flex; gap:5px;">
+        <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="chooseSprite('Player')">Player</button>
+        <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="chooseSprite('Enemy')">Enemy</button>
+        <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="chooseSprite('Wall')">Wall</button>
+      </div>
+    </div>
 
-      <div class="modal" id="code-modal">
-        <div class="modal-content">
-          <div class="modal-header" id="modal-title">EDIT SPRITE CODE</div>
-          <textarea id="code-input" spellcheck="false"></textarea>
-          <div class="modal-buttons">
-            <button onclick="saveCode()" style="background:#1100FF; color:#E8E1E1;">SAVE & APPLY</button>
-            <button onclick="closeCodeModal()">CANCEL</button>
+    <!-- Drawing Menu Modal -->
+    <div class="modal" id="draw-modal">
+      <div class="modal-content">
+        <div style="font-weight:bold;" id="draw-modal-title">Drawing Menu</div>
+        
+        <div class="draw-container">
+          <!-- Canvas Area -->
+          <canvas id="drawCanvas" width="224" height="224"></canvas>
+
+          <!-- Drawing Tools Sidebar -->
+          <div class="draw-tools">
+            <div style="font-size:11px; font-weight:bold;">TOOLS</div>
+            <button class="btn draw-tool-btn active" id="tool-draw" onclick="setDrawTool('draw')">Draw</button>
+            <button class="btn draw-tool-btn" id="tool-fill" onclick="setDrawTool('fill')">Fill</button>
+            <button class="btn draw-tool-btn" id="tool-erase" onclick="setDrawTool('erase')">Erase</button>
+            
+            <div style="font-size:11px; font-weight:bold; margin-top:5px;">PALETTE</div>
+            <div class="palette" style="grid-template-columns: repeat(2, 1fr);">
+              <div class="swatch selected" style="background:#00FF44;" onclick="selectPaintColor('#00FF44', this)"></div>
+              <div class="swatch" style="background:#1100FF;" onclick="selectPaintColor('#1100FF', this)"></div>
+              <div class="swatch" style="background:#007D22;" onclick="selectPaintColor('#007D22', this)"></div>
+              <div class="swatch" style="background:#0F0F0F;" onclick="selectPaintColor('#0F0F0F', this)"></div>
+              <div class="swatch" style="background:#E8E1E1;" onclick="selectPaintColor('#E8E1E1', this)"></div>
+              <div class="swatch" style="background:#FFFF00;" onclick="selectPaintColor('#FFFF00', this)"></div>
+            </div>
           </div>
+        </div>
+
+        <div style="display:flex; gap:10px;">
+          <button class="btn" style="flex:1;" onclick="saveDrawing()">Save Sprite</button>
+          <button class="btn" style="flex:1; background:#007D22;" onclick="closeDrawModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HTML Code Modal -->
+    <div class="modal" id="code-modal">
+      <div class="modal-content">
+        <div style="font-weight:bold;" id="modal-title">Code Sprite</div>
+        <textarea id="code-input" spellcheck="false"></textarea>
+        <div style="display:flex; gap:10px;">
+          <button class="btn" style="flex:1;" onclick="saveCode()">Save</button>
+          <button class="btn" style="flex:1; background:#007D22;" onclick="closeCodeModal()">Cancel</button>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Right Controls -->
+  <div class="sidebar-right">
+    <div class="selected-sprite-title">Selected Sprite<br><span id="active-sprite-name">(Player)</span></div>
+    <button class="btn mode-btn" id="btn-draw" onclick="openDrawModal()">Draw Onto</button>
+    <button class="btn" onclick="openCodeModal()">Code</button>
+    <button class="btn" onclick="deleteSelected()">Delete</button>
+    <button class="btn" onclick="groupSprites()">Group</button>
+  </div>
+
   <script>
-    const canvas = document.getElementById('canvas');
+    const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    const GRID = 10;
-    const SIZE = canvas.width / GRID;
+    const ROWS = 10;
+    const COLS = 17;
+    const SIZE = 32;
 
     let playing = false;
-    let tool = 'player';
+    let selectedSpriteName = 'Player';
     let selectedColor = '#00FF44';
-    let grid = Array(GRID).fill(null).map(() => Array(GRID).fill(null));
+    let currentMode = 'draw';
 
-    let player = null;
+    let sprites = [];
+    let selectedInstance = null;
+    let draggingInstance = null;
+    let dragOffset = { x: 0, y: 0 };
+
+    let playerPos = null;
+
+    // Mobile detection
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+
+    // Sprite Pixel Data (16x16 pixel grids)
+    const SPRITE_PIXELS = 16;
+    const spriteTextures = {};
+
+    function initDefaultTextures() {
+      ['Player', 'Enemy', 'Wall'].forEach(name => {
+        let color = name === 'Player' ? '#00FF44' : name === 'Enemy' ? '#1100FF' : '#007D22';
+        spriteTextures[name] = Array(SPRITE_PIXELS).fill(null).map(() => Array(SPRITE_PIXELS).fill(color));
+      });
+    }
+    initDefaultTextures();
 
     const spriteCode = {
-      player: '<div style="width: 100%; height: 100%; background: #00FF44;"></div>',
-      enemy: '<div style="width: 100%; height: 100%; background: #1100FF;"></div>',
-      wall: '<div style="width: 100%; height: 100%; background: #007D22;"></div>'
+      'Player': '<div style="width: 100%; height: 100%; background: #00FF44;"></div>',
+      'Enemy': '<div style="width: 100%; height: 100%; background: #1100FF;"></div>',
+      'Wall': '<div style="width: 100%; height: 100%; background: #007D22;"></div>'
     };
 
+    /* --- Drawing Modal Logic --- */
+    const drawCanvas = document.getElementById('drawCanvas');
+    const drawCtx = drawCanvas.getContext('2d');
+    const PIXEL_SIZE = drawCanvas.width / SPRITE_PIXELS;
+
+    let currentDrawTool = 'draw';
+    let paintColor = '#00FF44';
+    let activeTextureGrid = null;
+    let isDrawing = false;
+
+    function openDrawModal() {
+      document.getElementById('draw-modal-title').textContent = `Drawing Menu (${selectedSpriteName})`;
+      activeTextureGrid = JSON.parse(JSON.stringify(spriteTextures[selectedSpriteName]));
+      document.getElementById('draw-modal').style.display = 'flex';
+      renderDrawCanvas();
+    }
+
+    function closeDrawModal() {
+      document.getElementById('draw-modal').style.display = 'none';
+    }
+
+    function setDrawTool(tool) {
+      currentDrawTool = tool;
+      document.querySelectorAll('.draw-tool-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`tool-${tool}`).classList.add('active');
+    }
+
+    function selectPaintColor(color, el) {
+      paintColor = color;
+      document.querySelectorAll('#draw-modal .swatch').forEach(s => s.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    function renderDrawCanvas() {
+      drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+
+      for (let r = 0; r < SPRITE_PIXELS; r++) {
+        for (let c = 0; c < SPRITE_PIXELS; c++) {
+          const color = activeTextureGrid[r][c];
+          if (color) {
+            drawCtx.fillStyle = color;
+            drawCtx.fillRect(c * PIXEL_SIZE, r * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+          }
+        }
+      }
+
+      drawCtx.strokeStyle = '#e0e0e0';
+      drawCtx.lineWidth = 0.5;
+      for (let i = 0; i <= drawCanvas.width; i += PIXEL_SIZE) {
+        drawCtx.beginPath(); drawCtx.moveTo(i, 0); drawCtx.lineTo(i, drawCanvas.height); drawCtx.stroke();
+        drawCtx.beginPath(); drawCtx.moveTo(0, i); drawCtx.lineTo(drawCanvas.width, i); drawCtx.stroke();
+      }
+    }
+
+    function applyPixelAction(c, r) {
+      if (r < 0 || r >= SPRITE_PIXELS || c < 0 || c >= SPRITE_PIXELS) return;
+
+      if (currentDrawTool === 'draw') {
+        activeTextureGrid[r][c] = paintColor;
+      } else if (currentDrawTool === 'erase') {
+        activeTextureGrid[r][c] = null;
+      } else if (currentDrawTool === 'fill') {
+        const targetColor = activeTextureGrid[r][c];
+        if (targetColor === paintColor) return;
+
+        const queue = [[c, r]];
+        while (queue.length > 0) {
+          const [cx, ry] = queue.pop();
+          if (cx < 0 || cx >= SPRITE_PIXELS || ry < 0 || ry >= SPRITE_PIXELS) continue;
+          if (activeTextureGrid[ry][cx] === targetColor) {
+            activeTextureGrid[ry][cx] = paintColor;
+            queue.push([cx + 1, ry], [cx - 1, ry], [cx, ry + 1], [cx, ry - 1]);
+          }
+        }
+      }
+      renderDrawCanvas();
+    }
+
+    function handleDrawPointer(e) {
+      const rect = drawCanvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const c = Math.floor((clientX - rect.left) / (rect.width / SPRITE_PIXELS));
+      const r = Math.floor((clientY - rect.top) / (rect.height / SPRITE_PIXELS));
+      applyPixelAction(c, r);
+    }
+
+    drawCanvas.addEventListener('mousedown', (e) => { isDrawing = true; handleDrawPointer(e); });
+    drawCanvas.addEventListener('touchstart', (e) => { isDrawing = true; handleDrawPointer(e); e.preventDefault(); });
+    drawCanvas.addEventListener('mousemove', (e) => { if (isDrawing && currentDrawTool !== 'fill') handleDrawPointer(e); });
+    drawCanvas.addEventListener('touchmove', (e) => { if (isDrawing && currentDrawTool !== 'fill') handleDrawPointer(e); e.preventDefault(); });
+    window.addEventListener('mouseup', () => isDrawing = false);
+    window.addEventListener('touchend', () => isDrawing = false);
+
+    function saveDrawing() {
+      spriteTextures[selectedSpriteName] = activeTextureGrid;
+      closeDrawModal();
+      draw();
+    }
+
+    /* --- General Engine Logic --- */
     function getColorFromHTML(htmlString) {
       const hexMatch = htmlString.match(/background:\s*(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})/i);
       return hexMatch && hexMatch[1] ? hexMatch[1].toUpperCase() : null;
     }
 
-    function setTool(t) {
-      tool = t;
-      document.querySelectorAll('.sidebar button').forEach(b => {
-        if (b.id.startsWith('btn-')) b.classList.remove('active');
-      });
-      if (document.getElementById(`btn-${t}`)) {
-        document.getElementById(`btn-${t}`).classList.add('active');
-      }
+    function togglePanel(id) {
+      const p = document.getElementById(id);
+      const isVisible = p.style.display === 'block';
+      document.querySelectorAll('.panel').forEach(el => el.style.display = 'none');
+      if (!isVisible) p.style.display = 'block';
+    }
+
+    function chooseSprite(name) {
+      selectedSpriteName = name;
+      document.getElementById('active-sprite-name').textContent = `(${name})`;
+      togglePanel('sprite-panel');
     }
 
     function selectColor(color, el) {
@@ -242,18 +548,119 @@
       document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
       el.classList.add('selected');
 
-      if (tool !== 'erase' && spriteCode[tool]) {
-        spriteCode[tool] = spriteCode[tool].replace(/background:\s*[^;"]+/i, `background: ${selectedColor}`);
+      if (spriteCode[selectedSpriteName]) {
+        spriteCode[selectedSpriteName] = spriteCode[selectedSpriteName].replace(/background:\s*[^;"]+/i, `background: ${selectedColor}`);
       }
     }
 
-    function openCodeModal() {
-      if (tool === 'erase') {
-        alert('Select a sprite first!');
-        return;
+    function setMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById(`btn-${mode}`);
+      if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    function getSpriteAt(x, y) {
+      for (let i = sprites.length - 1; i >= 0; i--) {
+        const s = sprites[i];
+        if (x >= s.x && x < s.x + s.w && y >= s.y && y < s.y + s.h) {
+          return s;
+        }
       }
-      document.getElementById('modal-title').textContent = `EDIT HTML CODE (${tool.toUpperCase()})`;
-      document.getElementById('code-input').value = spriteCode[tool];
+      return null;
+    }
+
+    function handleCanvasInteraction(e) {
+      if (playing) return;
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const x = Math.floor((clientX - rect.left) / (rect.width / COLS));
+      const y = Math.floor((clientY - rect.top) / (rect.height / ROWS));
+
+      if (x < 0 || x >= COLS || y < 0 || y >= ROWS) return;
+
+      const hit = getSpriteAt(x, y);
+
+      if (currentMode === 'draw') {
+        if (selectedSpriteName === 'Player') {
+          sprites = sprites.filter(s => s.type !== 'Player');
+        }
+        if (!hit) {
+          const newSprite = { type: selectedSpriteName, x, y, w: 1, h: 1 };
+          sprites.push(newSprite);
+          selectedInstance = newSprite;
+        }
+      } else if (currentMode === 'select') {
+        if (hit) {
+          selectedInstance = hit;
+          selectedSpriteName = hit.type;
+          document.getElementById('active-sprite-name').textContent = `(${selectedSpriteName})`;
+        } else {
+          selectedInstance = null;
+        }
+      } else if (currentMode === 'move') {
+        if (hit) {
+          selectedInstance = hit;
+          draggingInstance = hit;
+          dragOffset.x = x - hit.x;
+          dragOffset.y = y - hit.y;
+        }
+      }
+
+      draw();
+    }
+
+    canvas.addEventListener('mousedown', handleCanvasInteraction);
+    canvas.addEventListener('touchstart', (e) => { handleCanvasInteraction(e); e.preventDefault(); });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (playing || currentMode !== 'move' || !draggingInstance) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / (rect.width / COLS));
+      const y = Math.floor((e.clientY - rect.top) / (rect.height / ROWS));
+
+      draggingInstance.x = Math.max(0, Math.min(COLS - draggingInstance.w, x - dragOffset.x));
+      draggingInstance.y = Math.max(0, Math.min(ROWS - draggingInstance.h, y - dragOffset.y));
+      draw();
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      if (playing || currentMode !== 'move' || !selectedInstance) return;
+      e.preventDefault();
+
+      const delta = Math.sign(e.deltaY);
+      if (delta < 0) {
+        if (selectedInstance.x + selectedInstance.w < COLS && selectedInstance.y + selectedInstance.h < ROWS) {
+          selectedInstance.w += 1;
+          selectedInstance.h += 1;
+        }
+      } else if (delta > 0) {
+        if (selectedInstance.w > 1 && selectedInstance.h > 1) {
+          selectedInstance.w -= 1;
+          selectedInstance.h -= 1;
+        }
+      }
+      draw();
+    });
+
+    function deleteSelected() {
+      if (selectedInstance) {
+        sprites = sprites.filter(s => s !== selectedInstance);
+        selectedInstance = null;
+      } else {
+        sprites = sprites.filter(s => s.type !== selectedSpriteName);
+      }
+      draw();
+    }
+
+    function groupSprites() {
+      alert(`Grouped all instances of ${selectedSpriteName}`);
+    }
+
+    function openCodeModal() {
+      document.getElementById('modal-title').textContent = `Code Sprite (${selectedSpriteName})`;
+      document.getElementById('code-input').value = spriteCode[selectedSpriteName] || '';
       document.getElementById('code-modal').style.display = 'flex';
     }
 
@@ -263,7 +670,7 @@
 
     function saveCode() {
       const code = document.getElementById('code-input').value;
-      const originalColor = getColorFromHTML(spriteCode[tool]);
+      const originalColor = getColorFromHTML(spriteCode[selectedSpriteName] || '');
       const newColor = getColorFromHTML(code);
 
       if (originalColor && newColor && originalColor !== newColor) {
@@ -271,123 +678,112 @@
         return;
       }
 
-      spriteCode[tool] = code;
+      spriteCode[selectedSpriteName] = code;
       closeCodeModal();
       draw();
     }
 
-    canvas.addEventListener('click', (e) => {
-      if (playing) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = Math.floor((e.clientX - rect.left) / SIZE);
-      const y = Math.floor((e.clientY - rect.top) / SIZE);
+    function drawSpriteTexture(sprite) {
+      const texture = spriteTextures[sprite.type];
+      if (!texture) return;
 
-      if (tool === 'player') {
-        for (let r = 0; r < GRID; r++) {
-          for (let c = 0; c < GRID; c++) {
-            if (grid[r][c]?.type === 'player') grid[r][c] = null;
+      const pxW = (sprite.w * SIZE) / SPRITE_PIXELS;
+      const pxH = (sprite.h * SIZE) / SPRITE_PIXELS;
+
+      for (let r = 0; r < SPRITE_PIXELS; r++) {
+        for (let c = 0; c < SPRITE_PIXELS; c++) {
+          const color = texture[r][c];
+          if (color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(sprite.x * SIZE + c * pxW, sprite.y * SIZE + r * pxH, pxW, pxH);
           }
         }
-        grid[y][x] = { type: 'player', color: selectedColor };
-      } else if (tool === 'enemy') {
-        grid[y][x] = { type: 'enemy', color: selectedColor };
-      } else if (tool === 'wall') {
-        grid[y][x] = { type: 'wall', color: selectedColor };
-      } else if (tool === 'erase') {
-        grid[y][x] = null;
       }
-
-      draw();
-    });
-
-    function clearGrid() {
-      grid = Array(GRID).fill(null).map(() => Array(GRID).fill(null));
-      draw();
     }
 
     function draw() {
-      ctx.fillStyle = '#00FFBB';
+      ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      for (let r = 0; r < GRID; r++) {
-        for (let c = 0; c < GRID; c++) {
-          const item = grid[r][c];
-          if (item) {
-            ctx.fillStyle = item.color;
-            ctx.fillRect(c * SIZE, r * SIZE, SIZE, SIZE);
-          }
+      sprites.forEach(s => {
+        drawSpriteTexture(s);
+
+        if (s === selectedInstance && !playing) {
+          ctx.strokeStyle = '#FFFF00';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(s.x * SIZE + 1, s.y * SIZE + 1, s.w * SIZE - 2, s.h * SIZE - 2);
         }
-      }
+      });
 
-      ctx.strokeStyle = '#007D22';
-      ctx.lineWidth = 1;
-      for (let i = 0; i <= GRID; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * SIZE, 0);
-        ctx.lineTo(i * SIZE, canvas.height);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(0, i * SIZE);
-        ctx.lineTo(canvas.width, i * SIZE);
-        ctx.stroke();
+      if (!playing) {
+        ctx.strokeStyle = '#E8E1E1';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= canvas.width; i += SIZE) {
+          ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+        }
+        for (let j = 0; j <= canvas.height; j += SIZE) {
+          ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke();
+        }
       }
     }
 
     function togglePlay() {
       playing = !playing;
       const btn = document.getElementById('btn-play');
+      const dpad = document.getElementById('dpad');
 
       if (playing) {
-        btn.textContent = 'STOP';
+        btn.textContent = 'Stop';
         btn.style.background = '#007D22';
 
-        for (let r = 0; r < GRID; r++) {
-          for (let c = 0; c < GRID; c++) {
-            if (grid[r][c]?.type === 'player') player = { x: c, y: r, color: grid[r][c].color };
-          }
-        }
+        const p = sprites.find(s => s.type === 'Player');
+        if (p) playerPos = { ...p };
+
+        if (isMobile) dpad.style.display = 'grid';
       } else {
-        btn.textContent = 'PLAY';
-        btn.style.background = '#1100FF';
+        btn.textContent = 'Play';
+        btn.style.background = '#00FF44';
+        dpad.style.display = 'none';
       }
       draw();
     }
 
-    window.addEventListener('keydown', (e) => {
-      if (!playing || !player) return;
+    function movePlayer(dx, dy) {
+      if (!playing || !playerPos) return;
 
-      let dx = 0, dy = 0;
-      if (e.key === 'ArrowUp') dy = -1;
-      if (e.key === 'ArrowDown') dy = 1;
-      if (e.key === 'ArrowLeft') dx = -1;
-      if (e.key === 'ArrowRight') dx = 1;
+      const nx = playerPos.x + dx;
+      const ny = playerPos.y + dy;
 
-      if (dx !== 0 || dy !== 0) {
-        const nx = player.x + dx;
-        const ny = player.y + dy;
+      if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
+        const hit = getSpriteAt(nx, ny);
 
-        if (nx >= 0 && nx < GRID && ny >= 0 && ny < GRID) {
-          const target = grid[ny][nx];
+        if (hit?.type === 'Wall') return;
 
-          if (target?.type === 'wall') return;
-
-          if (target?.type === 'enemy') {
-            alert('GAME OVER');
-            togglePlay();
-            return;
-          }
-
-          grid[player.y][player.x] = null;
-          player = { x: nx, y: ny, color: player.color };
-          grid[ny][nx] = { type: 'player', color: player.color };
-          draw();
+        if (hit?.type === 'Enemy') {
+          alert('GAME OVER');
+          togglePlay();
+          return;
         }
+
+        const playerSprite = sprites.find(s => s.type === 'Player');
+        if (playerSprite) {
+          playerSprite.x = nx;
+          playerSprite.y = ny;
+          playerPos.x = nx;
+          playerPos.y = ny;
+        }
+        draw();
       }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp') movePlayer(0, -1);
+      if (e.key === 'ArrowDown') movePlayer(0, 1);
+      if (e.key === 'ArrowLeft') movePlayer(-1, 0);
+      if (e.key === 'ArrowRight') movePlayer(1, 0);
     });
 
     draw();
   </script>
 </body>
 </html>
-<!-- this isnt vibe coded im just shit at coding-->
