@@ -74,6 +74,11 @@
       opacity: 0.9;
     }
 
+    .btn-discord {
+      background: #5865F2;
+      color: #ffffff;
+    }
+
     /* Center Workspace */
     .workspace {
       flex: 1;
@@ -306,7 +311,7 @@
     <!-- Color Palette Sub-Panel -->
     <div class="panel" id="palette-panel">
       <div style="font-size:12px; font-weight:bold; margin-bottom:8px;">COLOR PALETTE</div>
-      <div class="palette">
+      <div class="palette" id="palette-grid">
         <div class="swatch selected" style="background:#00FF44;" onclick="selectColor('#00FF44', this)"></div>
         <div class="swatch" style="background:#1100FF;" onclick="selectColor('#1100FF', this)"></div>
         <div class="swatch" style="background:#007D22;" onclick="selectColor('#007D22', this)"></div>
@@ -314,6 +319,7 @@
         <div class="swatch" style="background:#E8E1E1;" onclick="selectColor('#E8E1E1', this)"></div>
         <div class="swatch" style="background:#FFFF00;" onclick="selectColor('#FFFF00', this)"></div>
       </div>
+      <button class="btn" style="padding:6px; font-size:11px; margin-top:8px; width:100%;" onclick="initMobileSync()"> Sync Colors</button>
     </div>
 
     <!-- New Sprite Selector Sub-Panel -->
@@ -381,6 +387,7 @@
     <button class="btn" onclick="openCodeModal()">Code</button>
     <button class="btn" onclick="deleteSelected()">Delete</button>
     <button class="btn" onclick="groupSprites()">Group</button>
+    <button class="btn btn-discord" onclick="window.open('https://discord.gg/FvXF5DgWME', '_blank')">Join the discord!</button>
   </div>
 
   <script>
@@ -423,6 +430,50 @@
       'Enemy': '<div style="width: 100%; height: 100%; background: #1100FF;"></div>',
       'Wall': '<div style="width: 100%; height: 100%; background: #007D22;"></div>'
     };
+
+    /* --- Discord Color Sync Logic --- */
+    async function initMobileSync() {
+      let username = localStorage.getItem('discord_username');
+      if (!username) {
+        username = prompt("Enter your Discord username to sync your unlocked colors:");
+        if (username) localStorage.setItem('discord_username', username);
+      }
+      if (username) await syncUnlockedColors(username);
+    }
+
+    async function syncUnlockedColors(username) {
+      try {
+        const SERVER_URL = "https://my-discord-bot-api.onrender.com"; // Replace with your cloud URL
+        const response = await fetch(`${SERVER_URL}/api/colors?username=${encodeURIComponent(username)}`);
+        const data = await response.json();
+
+        if (data.unlockedColors && data.unlockedColors.length > 0) {
+          data.unlockedColors.forEach(hexColor => addColorToPaletteUI(hexColor));
+        }
+      } catch (err) {
+        console.error('Failed to sync colors:', err);
+      }
+    }
+
+    function addColorToPaletteUI(hexColor) {
+      const paletteContainers = document.querySelectorAll('.palette');
+      paletteContainers.forEach(container => {
+        if (container.querySelector(`[data-color="${hexColor}"]`)) return;
+
+        const swatch = document.createElement('div');
+        swatch.className = 'swatch';
+        swatch.style.background = hexColor;
+        swatch.setAttribute('data-color', hexColor);
+        swatch.onclick = function() {
+          if (container.closest('#draw-modal')) {
+            selectPaintColor(hexColor, swatch);
+          } else {
+            selectColor(hexColor, swatch);
+          }
+        };
+        container.appendChild(swatch);
+      });
+    }
 
     /* --- Drawing Modal Logic --- */
     const drawCanvas = document.getElementById('drawCanvas');
